@@ -2,8 +2,13 @@ package Team.demo;
 
 import Team.demo.model.Question;
 import Team.demo.model.Quiz;
+import Team.demo.model.QuizResult;
+import Team.demo.model.User;
+import Team.demo.model.QuestionResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,9 +25,13 @@ import java.util.List;
 public class QuizController {
 
     private final AiQuizService aiQuizService;
+    private final QuizResultRepository quizResultRepository;
+    private final UserRepository userRepository;
 
-    public QuizController(AiQuizService aiQuizService) {
+    public QuizController(AiQuizService aiQuizService, QuizResultRepository quizResultRepository, UserRepository userRepository) {
         this.aiQuizService = aiQuizService;
+        this.quizResultRepository = quizResultRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/")
@@ -59,48 +68,82 @@ public class QuizController {
         session.setAttribute("currentQuiz", quiz);
         model.addAttribute("quiz", quiz);
 
-        // ✅ FIX: This now correctly sends the user to the quiz display page.
         return "quiz_dynamic";
     }
 
     @PostMapping("/submit")
-    public String submitQuiz(HttpServletRequest request, Model model, HttpSession session) {
+    public String submitQuiz(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "redirect:/";
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
         Quiz quiz = (Quiz) session.getAttribute("currentQuiz");
-        if (quiz == null) {
-            return "redirect:/"; // No quiz in session, go home.
+
+        if (quiz == null || currentUser == null) {
+            return "redirect:/";
         }
 
         List<Question> questions = quiz.getQuestions();
         List<String> userAnswers = new ArrayList<>();
         int score = 0;
 
+        QuizResult quizResult = new QuizResult();
+        quizResult.setTopic(quiz.getTopic());
+        quizResult.setUser(currentUser);
+
         for (int i = 0; i < questions.size(); i++) {
+            Question q = questions.get(i);
             String userAnswer = request.getParameter("q" + i);
+            String correctAnswer = q.getCorrectAnswerText();
+            boolean isCorrect = false;
+
             if (userAnswer == null) {
                 userAnswers.add("Not Answered");
             } else {
                 userAnswers.add(userAnswer);
-                String correctAnswer = questions.get(i).getCorrectAnswerText();
                 if (userAnswer.equals(correctAnswer)) {
                     score++;
+                    isCorrect = true;
                 }
             }
+            QuestionResult qr = new QuestionResult();
+            qr.setQuestionText(q.getQuestion());
+            qr.setUserAnswer(userAnswer != null ? userAnswer : "Not Answered");
+            qr.setCorrectAnswer(correctAnswer);
+            qr.setCorrect(isCorrect);
+            quizResult.getQuestionResults().add(qr);
         }
+
+        quizResult.setScore(score);
+        quizResult.setTotal(questions.size());
+        quizResultRepository.save(quizResult);
 
         model.addAttribute("score", score);
         model.addAttribute("total", questions.size());
         model.addAttribute("questions", questions);
         model.addAttribute("userAnswers", userAnswers);
 
+        session.removeAttribute("currentQuiz");
+
         return "result";
+    }
+
+    @GetMapping("/history")
+    public String history(Model model) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        List<QuizResult> history = quizResultRepository.findByUser_UsernameOrderByTimestampDesc(currentUsername);
+        model.addAttribute("history", history);
+        return "history";
     }
 
     private Quiz createFallbackQuiz(String topic, String difficulty, String type) {
         List<Question> fallbackQuestions = new ArrayList<>();
-        fallbackQuestions.add(new Question("What does AI stand for?",
-                Arrays.asList("Artificial Intelligence", "Automated Input", "Advanced Integration", "None"), 0));
-        fallbackQuestions.add(new Question("Which language is most popular for AI development?",
-                Arrays.asList("Python", "Java", "C++", "Ruby"), 0));
+        fallbackQuestions.add(new Question("What does AI stand for?", Arrays.asList("Artificial Intelligence", "Automated Input", "None"), 0));
         return new Quiz(topic, difficulty, type, fallbackQuestions);
     }
 }
