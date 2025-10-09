@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Generated Quiz</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+           background-color: #111827;
+           color: #E5E7EB;
+           font-family: 'Segoe UI', system-ui, sans-serif;
+           padding: 2rem 0;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           min-height: 100vh;
+       }
+       .container { max-width: 800px; width: 90%; }
+       .card { background-color: #1F2937; border: 1px solid #374151; border-radius: 1.5rem; }
+       .question-container { background-color: #111827; border-color: #374151 !important; border-radius: 1rem; }
+       .option-card { display: flex; align-items: center; justify-content: space-between; position: relative; padding: 1rem 1.25rem; margin: 0.5rem 0; border-radius: 0.75rem; background: #374151; color: #D1D5DB; border: 1px solid #4B5563; cursor: pointer; transition: all 0.2s; user-select: none; }
+       .option-card input { position: absolute; opacity: 0; }
+       .checkmark { position: relative; height: 25px; width: 25px; min-width: 25px; background-color: #4B5563; border-radius: 50%; border: 1px solid #9CA3AF; transition: all 0.3s; }
+       .option-card:hover { border-color: #8B5CF6; }
+       .option-card.selected .checkmark { background-color: #000; border-color: #000; box-shadow: 0 0 15px 3px rgba(139, 92, 246, 0.6), 0 0 20px 5px rgba(236, 72, 153, 0.4); }
+       .checkmark:after { content: ""; position: absolute; display: none; left: 9px; top: 5px; width: 7px; height: 13px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
+       .option-card.selected .checkmark:after { display: block; }
+       button[type="submit"] { background: linear-gradient(to right, #6D28D9, #8B5CF6); color: white; border: none; font-weight: bold; border-radius: 0.75rem; padding: 0.75rem; transition: all 0.3s; }
+       button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+    </style>
+</head>
+<body class="py-5">
+<div class="container">
+    <div class="card p-4 p-md-5">
+        <h2 class="text-center mb-4">📝 Quiz on "<span th:text="${quiz.topic}"></span>"</h2>
+        <h5 class="text-center text-muted mb-4">Difficulty: <span th:text="${quiz.difficulty}"></span></h5>
+        <div th:if="${note}" class="alert alert-warning text-center" th:text="${note}"></div>
+        <form action="/submit" method="post">
+            <div th:each="q, iterStat : ${quiz.questions}" class="mb-4 p-3 question-container">
+                <p class="fw-bold" th:text="${iterStat.index + 1} + '. ' + ${q.question}"></p>
+                <div th:each="opt : ${q.options}">
+                    <label class="option-card">
+                        <span style="flex-grow: 1; margin-right: 10px;" th:text="${opt}"></span>
+                        <input type="radio" th:name="${'q' + iterStat.index}" th:value="${opt}" required onclick="updateSelected(this)">
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="w-100 mt-3 p-2">Submit Quiz</button>
+        </form>
+    </div>
+</div>
+<script>
+    function updateSelected(radio) {
+        let questionContainer = radio.closest('.question-container');
+        questionContainer.querySelectorAll('.option-card').forEach(opt => opt.classList.remove('selected'));
+        radio.closest('.option-card').classList.add('selected');
+    }
+</script>
+</body>
+</html>

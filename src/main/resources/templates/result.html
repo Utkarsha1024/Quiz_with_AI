@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quiz Results</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: #111827;
+            color: #E5E7EB;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 2rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .results-container { max-width: 800px; width: 90%; }
+        .score-card {
+            background: #1F2937;
+            border: 1px solid #374151;
+            color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+        }
+        .score-text {
+            font-size: 4rem;
+            font-weight: bold;
+            background: -webkit-linear-gradient(45deg, #8B5CF6, #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .progress {
+            background-color: #374151;
+            height: 30px;
+            border-radius: 1rem;
+            padding: 4px;
+        }
+        .progress-bar {
+            background: linear-gradient(to right, #8B5CF6, #EC4899);
+            border-radius: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+            animation: progress-animation 2s ease-out;
+        }
+        @keyframes progress-animation {
+            from { width: 0% !important; }
+        }
+        .result-question-card {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+            border-left-width: 5px;
+            border-radius: 0.75rem;
+        }
+        .border-success { border-left-color: #10B981 !important; }
+        .border-danger { border-left-color: #EF4444 !important; }
+        .correct-answer-text { font-weight: bold; color: #34D399; }
+        .user-answer-incorrect { color: #F87171; text-decoration: line-through; }
+        .btn-primary {
+            background: linear-gradient(to right, #6D28D9, #8B5CF6);
+            border: none;
+            font-weight: bold;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+        /* ✅ ADDED: A custom class for more margin */
+        .mb-5 {
+            margin-bottom: 3rem !important;
+        }
+    </style>
+</head>
+<body class="py-5">
+<div class="container results-container">
+    <div class="card shadow-lg mb-5 text-center score-card">
+        <div class="card-body p-5">
+            <h1 class="card-title">Quiz Complete!</h1>
+            <p class="lead">Your final score is:</p>
+            <div class="score-text" th:text="${score} + ' / ' + ${total}"></div>
+            <div class="progress mt-4">
+                <div class="progress-bar" role="progressbar"
+                     th:style="'width: ' + (${total} > 0 ? (${score} * 100 / ${total}) : 0) + '%;'"
+                     th:text="|${total > 0 ? T(java.lang.Math).round((score * 100.0 / total)) : 0}%|">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="text-center mb-4">Detailed Answer Review</h2>
+    <div th:each="q, iterStat : ${questions}">
+        <!-- ✅ UPDATED: Changed from mb-4 to mb-5 for more space -->
+        <div th:with="userAnswer=${userAnswers[iterStat.index]}, correctAnswer=${q.getCorrectAnswerText()}"
+             th:classappend="${userAnswer.equals(correctAnswer) ? 'border-success' : 'border-danger'}"
+             class="card shadow-sm mb-5 result-question-card">
+            <div class="card-body">
+                <h5 class="card-title" th:text="${iterStat.count} + '. ' + ${q.question}"></h5>
+                <p class="mb-2">Your answer:
+                    <span th:text="${userAnswer}"
+                          th:class="${userAnswer.equals(correctAnswer) ? 'correct-answer-text' : 'user-answer-incorrect'}">
+                    </span>
+                </p>
+                <p th:if="${!userAnswer.equals(correctAnswer)}" class="mb-1">
+                    Correct answer: <span th:text="${correctAnswer}" class="correct-answer-text"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-5">
+        <a href="/" class="btn btn-primary btn-lg">🏠 Play Another Quiz</a>
+    </div>
+</div>
+</body>
+</html>

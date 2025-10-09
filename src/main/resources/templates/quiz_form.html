@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quiz</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="container">
+    <h2>Generated Quiz</h2>
+
+    <form action="/submit-quiz" method="post">
+        <div th:each="q, iterStat : ${quiz.questions}">
+            <h3 th:text="${iterStat.index + 1} + '. ' + ${q.question}"></h3>
+
+            <div th:each="opt : ${q.options}">
+                <label class="option-card">
+                    <input type="radio" th:name="${'q' + iterStat.index}" th:value="${opt}">
+                    <span th:text="${opt}"></span>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit">Submit Quiz</button>
+    </form>
+</div>
+</body>
+</html>
