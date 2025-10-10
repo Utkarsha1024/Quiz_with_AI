@@ -1,10 +1,6 @@
 package Team.demo;
 
-import Team.demo.model.Question;
-import Team.demo.model.Quiz;
-import Team.demo.model.QuizResult;
-import Team.demo.model.User;
-import Team.demo.model.QuestionResult;
+import Team.demo.model.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
@@ -55,7 +51,10 @@ public class QuizController {
 
         Quiz quiz;
         try {
-            quiz = aiQuizService.generateQuiz(topic, difficulty, type, file);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            quiz = aiQuizService.generateQuiz(topic, difficulty, type, file, username);
+
             if (quiz == null || quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) {
                 quiz = createFallbackQuiz(topic, difficulty, type);
                 model.addAttribute("note", "⚠️ AI service unavailable. Showing a fallback quiz.");
@@ -67,20 +66,20 @@ public class QuizController {
 
         session.setAttribute("currentQuiz", quiz);
         model.addAttribute("quiz", quiz);
-
         return "quiz_dynamic";
     }
 
+    /**
+     * ✅ REFINED: The method signature is changed to directly inject the HttpSession.
+     * This is a more stable way to ensure the session is correctly handled.
+     */
     @PostMapping("/submit")
-    public String submitQuiz(HttpServletRequest request, Model model) {
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            return "redirect:/";
-        }
-
+    public String submitQuiz(HttpServletRequest request, Model model, HttpSession session) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
         User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
+
+        // Retrieve the quiz directly from the injected session
         Quiz quiz = (Quiz) session.getAttribute("currentQuiz");
 
         if (quiz == null || currentUser == null) {
@@ -147,3 +146,4 @@ public class QuizController {
         return new Quiz(topic, difficulty, type, fallbackQuestions);
     }
 }
+
