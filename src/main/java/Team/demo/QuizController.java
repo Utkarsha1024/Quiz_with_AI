@@ -37,6 +37,7 @@ public class QuizController {
 
     @PostMapping("/generate-quiz")
     public String generateQuiz(@RequestParam(required = false) String topic,
+                               @RequestParam int numberOfQuestions,
                                @RequestParam String difficulty,
                                @RequestParam String type,
                                @RequestParam(required = false) MultipartFile file,
@@ -53,8 +54,7 @@ public class QuizController {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName();
-            quiz = aiQuizService.generateQuiz(topic, difficulty, type, file, username);
-
+            quiz = aiQuizService.generateQuiz(topic, numberOfQuestions, difficulty, type, file, username);
             if (quiz == null || quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) {
                 quiz = createFallbackQuiz(topic, difficulty, type);
                 model.addAttribute("note", "⚠️ AI service unavailable. Showing a fallback quiz.");
@@ -69,17 +69,16 @@ public class QuizController {
         return "quiz_dynamic";
     }
 
-    /**
-     * ✅ REFINED: The method signature is changed to directly inject the HttpSession.
-     * This is a more stable way to ensure the session is correctly handled.
-     */
     @PostMapping("/submit")
-    public String submitQuiz(HttpServletRequest request, Model model, HttpSession session) {
+    public String submitQuiz(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "redirect:/";
+        }
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
         User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
-
-        // Retrieve the quiz directly from the injected session
         Quiz quiz = (Quiz) session.getAttribute("currentQuiz");
 
         if (quiz == null || currentUser == null) {
@@ -87,12 +86,13 @@ public class QuizController {
         }
 
         List<Question> questions = quiz.getQuestions();
-        List<String> userAnswers = new ArrayList<>();
         int score = 0;
 
         QuizResult quizResult = new QuizResult();
         quizResult.setTopic(quiz.getTopic());
         quizResult.setUser(currentUser);
+
+        List<QuestionResult> questionResults = new ArrayList<>();
 
         for (int i = 0; i < questions.size(); i++) {
             Question q = questions.get(i);
@@ -100,31 +100,31 @@ public class QuizController {
             String correctAnswer = q.getCorrectAnswerText();
             boolean isCorrect = false;
 
-            if (userAnswer == null) {
-                userAnswers.add("Not Answered");
-            } else {
-                userAnswers.add(userAnswer);
-                if (userAnswer.equals(correctAnswer)) {
+            if (userAnswer != null && !userAnswer.isBlank()) {
+                if (("Fill in the Blank".equals(q.getType()) && userAnswer.equalsIgnoreCase(correctAnswer)) ||
+                        (!"Fill in the Blank".equals(q.getType()) && userAnswer.equals(correctAnswer))) {
                     score++;
                     isCorrect = true;
                 }
             }
+
             QuestionResult qr = new QuestionResult();
             qr.setQuestionText(q.getQuestion());
-            qr.setUserAnswer(userAnswer != null ? userAnswer : "Not Answered");
+            qr.setUserAnswer(userAnswer != null && !userAnswer.isBlank() ? userAnswer : "Not Answered");
             qr.setCorrectAnswer(correctAnswer);
             qr.setCorrect(isCorrect);
-            quizResult.getQuestionResults().add(qr);
+            questionResults.add(qr);
         }
 
+        quizResult.setQuestionResults(questionResults);
         quizResult.setScore(score);
         quizResult.setTotal(questions.size());
         quizResultRepository.save(quizResult);
 
         model.addAttribute("score", score);
         model.addAttribute("total", questions.size());
-        model.addAttribute("questions", questions);
-        model.addAttribute("userAnswers", userAnswers);
+        // ✅ FIX: Pass the calculated results to the page instead of the raw questions/answers
+        model.addAttribute("questionResults", questionResults);
 
         session.removeAttribute("currentQuiz");
 
@@ -142,8 +142,20 @@ public class QuizController {
 
     private Quiz createFallbackQuiz(String topic, String difficulty, String type) {
         List<Question> fallbackQuestions = new ArrayList<>();
-        fallbackQuestions.add(new Question("What does AI stand for?", Arrays.asList("Artificial Intelligence", "Automated Input", "None"), 0));
+        if ("Fill in the Blank".equals(type)) {
+            Question q = new Question();
+            q.setType("Fill in the Blank");
+            q.setQuestion("The capital of France is ____.");
+            q.setAnswer("Paris");
+            fallbackQuestions.add(q);
+        } else {
+            Question q = new Question();
+            q.setType("Multiple Choice");
+            q.setQuestion("What does AI stand for?");
+            q.setOptions(Arrays.asList("Artificial Intelligence", "Automated Input", "None"));
+            q.setCorrectOptionIndex(0);
+            fallbackQuestions.add(q);
+        }
         return new Quiz(topic, difficulty, type, fallbackQuestions);
     }
 }
-

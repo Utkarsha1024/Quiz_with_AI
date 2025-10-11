@@ -30,11 +30,10 @@ public class AiQuizService {
     private static final Logger logger = LoggerFactory.getLogger(AiQuizService.class);
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final QuizResultRepository quizResultRepository; // For fetching history
+    private final QuizResultRepository quizResultRepository;
 
     @Value("${gemini.api.key}")
     private String geminiApiKey;
-
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
 
@@ -43,46 +42,41 @@ public class AiQuizService {
         this.quizResultRepository = quizResultRepository;
     }
 
-    public Quiz generateQuiz(String topic, String difficulty, String type, MultipartFile file, String username) throws IOException {
-        String context;
-        try {
-            if (file != null && !file.isEmpty()) {
-                context = "Based on the document: " + extractTextFromFile(file);
-            } else if (topic != null && !topic.isBlank()) {
-                context = "Topic: '" + topic + "'";
-            } else {
-                throw new IllegalArgumentException("A topic or a file must be provided.");
-            }
-        } catch (NoClassDefFoundError e) {
-            logger.error("A required library for file processing is missing. Check pom.xml.", e);
-            throw new RuntimeException("Server configuration error for file reading.");
-        }
+    public Quiz generateQuiz(String topic, int numberOfQuestions, String difficulty, String type, MultipartFile file, String username) throws IOException {
+        String context = (file != null && !file.isEmpty()) ? "Based on the provided document" : "on the topic of '" + topic + "'";
 
-        // ✅ NEW LOGIC: Fetch past questions to avoid repetition
         String exclusionPrompt = "";
         if (topic != null && !topic.isBlank() && username != null) {
-            List<QuizResult> pastResults = quizResultRepository.findByUser_UsernameOrderByTimestampDesc(username);
-            List<String> pastQuestions = pastResults.stream()
+            List<String> pastQuestions = quizResultRepository.findByUser_UsernameOrderByTimestampDesc(username).stream()
                     .filter(result -> topic.equalsIgnoreCase(result.getTopic()))
-                    .flatMap(result -> result.getQuestionResults().stream())
-                    .map(qr -> qr.getQuestionText())
-                    .distinct()
-                    .collect(Collectors.toList());
-
+                    .flatMap(result -> result.getQuestionResults().stream().map(qr -> qr.getQuestionText()))
+                    .distinct().collect(Collectors.toList());
             if (!pastQuestions.isEmpty()) {
-                exclusionPrompt = " CRITICAL INSTRUCTION: Do NOT repeat any of the following questions: " + pastQuestions.toString();
+                exclusionPrompt = " CRITICAL: Do NOT repeat any of the following questions: " + pastQuestions.toString();
             }
         }
 
-        String prompt = String.format(
-                "Generate a 5-question quiz in STRICT JSON format. Do not use markdown. " +
-                        "%s, Difficulty: '%s'. " +
-                        "%s. " + // This will be the exclusion prompt
-                        "The JSON structure MUST be: { \"questions\": [ " +
-                        "{ \"question\": \"...\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"correctOptionIndex\": 0 } ] }. " +
-                        "The 'correctOptionIndex' MUST be the 0-based index of the factually correct answer.",
-                context, difficulty, exclusionPrompt
-        );
+        // ✅ REFINED: Create completely separate, more forceful prompts for each type.
+        String prompt;
+        if ("Fill in the Blank".equals(type)) {
+            prompt = String.format(
+                    "Generate a quiz with exactly %d 'Fill in the Blank' questions. The quiz is %s. Difficulty: '%s'. " +
+                            "IMPORTANT: You must only output a JSON object. Do not add any other text or markdown. " +
+                            "Follow this exact JSON structure: " +
+                            "{\"questions\":[{\"question\":\"A question with a ____ in it.\",\"answer\":\"The missing word\"}]}. " +
+                            "The 'question' field MUST contain '____' as the blank. %s",
+                    numberOfQuestions, context, difficulty, exclusionPrompt
+            );
+        } else { // Default to Multiple Choice
+            prompt = String.format(
+                    "Generate a quiz with exactly %d 'Multiple Choice' questions. The quiz is %s. Difficulty: '%s'. " +
+                            "Output ONLY a strict JSON object (no markdown). " +
+                            "The JSON structure MUST be: {\"questions\":[{\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correctOptionIndex\":0}]}. " +
+                            "The 'correctOptionIndex' MUST be the 0-based index of the correct answer. %s",
+                    numberOfQuestions, context, difficulty, exclusionPrompt
+            );
+        }
+
         return generateQuizFromPrompt(prompt, topic, difficulty, type);
     }
 
@@ -115,28 +109,70 @@ public class AiQuizService {
             String requestBody = "{ \"contents\": [{ \"parts\": [{ \"text\": \"" + prompt.replace("\"", "\\\"").replace("\n", "\\n") + "\" }] }] }";
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
             String fullApiUrl = geminiApiUrl + "?key=" + geminiApiKey;
+
             ResponseEntity<String> response = restTemplate.postForEntity(fullApiUrl, entity, String.class);
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 JsonNode root = objectMapper.readTree(response.getBody());
+
+                if (!root.has("candidates") || !root.get("candidates").isArray() || root.get("candidates").isEmpty()) {
+                    throw new RuntimeException("AI response was empty or invalid.");
+                }
+
                 String rawText = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+                logger.info("AI RAW RESPONSE: {}", rawText); // Log the raw response for debugging
                 String cleanedJsonText = rawText.replace("```json", "").replace("```", "").trim();
+
+                if (!cleanedJsonText.startsWith("{") || !cleanedJsonText.endsWith("}")) {
+                    logger.error("AI did not return a valid JSON object. Raw text: {}", cleanedJsonText);
+                    throw new IOException("AI did not return a valid JSON object.");
+                }
+
                 JsonNode quizJson = objectMapper.readTree(cleanedJsonText);
                 List<Question> questions = new ArrayList<>();
-                for (JsonNode qNode : quizJson.path("questions")) {
-                    questions.add(new Question(qNode.path("question").asText(), jsonNodeToList(qNode.path("options")), qNode.path("correctOptionIndex").asInt()));
+
+                if (!quizJson.has("questions") || !quizJson.get("questions").isArray()) {
+                    logger.error("AI response JSON is missing 'questions' array. JSON: {}", cleanedJsonText);
+                    throw new IOException("AI response JSON is malformed.");
                 }
-                if (questions.isEmpty()) { throw new RuntimeException("AI returned no questions."); }
+
+                for (JsonNode qNode : quizJson.path("questions")) {
+                    if (!qNode.hasNonNull("question")) continue;
+
+                    Question question = new Question();
+                    question.setType(type);
+                    question.setQuestion(qNode.path("question").asText());
+
+                    if ("Fill in the Blank".equals(type)) {
+                        if (!qNode.hasNonNull("answer")) {
+                            logger.warn("Skipping Fill-in-the-Blank question due to missing 'answer' field: {}", qNode.toString());
+                            continue;
+                        }
+                        question.setAnswer(qNode.path("answer").asText());
+                    } else {
+                        if (!qNode.hasNonNull("options") || !qNode.get("options").isArray() || qNode.get("options").isEmpty() || !qNode.hasNonNull("correctOptionIndex")) {
+                            logger.warn("Skipping Multiple Choice question due to missing fields: {}", qNode.toString());
+                            continue;
+                        }
+                        List<String> options = new ArrayList<>();
+                        for (JsonNode opt : qNode.path("options")) {
+                            options.add(opt.asText());
+                        }
+                        question.setOptions(options);
+                        question.setCorrectOptionIndex(qNode.path("correctOptionIndex").asInt());
+                    }
+                    questions.add(question);
+                }
+
+                if(questions.isEmpty()){
+                    logger.error("Failed to parse any valid questions from AI response. JSON: {}", cleanedJsonText);
+                    throw new RuntimeException("Failed to parse any questions from AI response.");
+                }
                 return new Quiz(topic, difficulty, type, questions);
             } else { throw new RuntimeException("Gemini API call failed."); }
-        } catch (Exception e) { throw new RuntimeException("Error communicating with AI service.", e); }
-    }
-
-    private List<String> jsonNodeToList(JsonNode node) {
-        List<String> list = new ArrayList<>();
-        if (node != null && node.isArray()) {
-            for (JsonNode element : node) { list.add(element.asText()); }
+        } catch (Exception e) {
+            logger.error("Error during AI quiz generation or parsing.", e);
+            throw new RuntimeException("Error communicating with or parsing response from AI service.", e);
         }
-        return list;
     }
 }
 
