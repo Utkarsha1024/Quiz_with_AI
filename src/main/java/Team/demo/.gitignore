@@ -1,0 +1,25 @@
+Compiled output
+/target/
+
+Log files
+*.log
+
+IDE files
+.idea/
+*.iml
+
+Local-only properties file
+THIS IS THE MOST IMPORTANT LINE - IT PREVENTS YOUR SECRET KEY FROM BEING UPLOADED
+application-local.properties
+
+
+### Step 3: Create a Local, Untracked Properties File
+
+Now, you need to create a **new file** in the same `src/main/resources/` directory.
+
+1.  Create a new file named exactly `application-local.properties`.
+2.  Add your **new** Gemini API key to this file like so:
+
+    ```properties
+    # This file is NOT committed to Git. Your secrets live here.
+    gemini.api.key=AIzaSyCzOGP-XfCCAwD7r9v6XnCUhxlVULOurPo
