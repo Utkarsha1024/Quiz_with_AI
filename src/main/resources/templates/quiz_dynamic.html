@@ -6,30 +6,37 @@
     <style>
         body { background-color: #111827; color: #E5E7EB; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
        .container { max-width: 800px; width: 90%; }
+       /* ✅ REFINED: Kept large radius for main card */
        .card { background-color: #1F2937; border: 1px solid #374151; border-radius: 1.5rem; }
        .question-container { background-color: #111827; border-color: #374151 !important; border-radius: 1rem; }
-       .option-card { display: flex; align-items: center; justify-content: space-between; position: relative; padding: 1rem 1.25rem; margin: 0.5rem 0; border-radius: 0.75rem; background: #374151; color: #D1D5DB; border: 1px solid #4B5563; cursor: pointer; user-select: none; }
+       /* ✅ REFINED: Pill shape for option cards */
+       .option-card { display: flex; align-items: center; justify-content: space-between; position: relative; padding: 1rem 1.25rem; margin: 0.5rem 0; border-radius: 9999px; background: #374151; color: #D1D5DB; border: 1px solid #4B5563; cursor: pointer; user-select: none; transition: all 0.2s; }
        .option-card input[type=radio] { position: absolute; opacity: 0; }
-       .checkmark { position: relative; height: 25px; width: 25px; min-width: 25px; background-color: #4B5563; border-radius: 50%; border: 1px solid #9CA3AF; }
+       .checkmark { position: relative; height: 25px; width: 25px; min-width: 25px; background-color: #4B5563; border-radius: 50%; border: 1px solid #9CA3AF; transition: all 0.2s; }
        .option-card:hover { border-color: #8B5CF6; }
-       .option-card.selected .checkmark { background-color: #000; box-shadow: 0 0 15px 3px rgba(139, 92, 246, 0.6); }
+       .option-card.selected { border-color: #8B5CF6; }
+       .option-card.selected .checkmark { background-color: #8B5CF6; box-shadow: 0 0 15px 3px rgba(139, 92, 246, 0.6); border-color: #8B5CF6; }
        .checkmark:after { content: ""; position: absolute; display: none; left: 9px; top: 5px; width: 7px; height: 13px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
        .option-card.selected .checkmark:after { display: block; }
+       /* ✅ REFINED: Pill shape for fill-in-blank input */
        .fill-in-blank-input {
            width: 100%;
-           padding: 0.75rem 1rem;
+           padding: 0.75rem 1.5rem; /* Increased padding */
            background-color: #374151;
            border: 1px solid #4B5563;
-           border-radius: 0.75rem;
+           border-radius: 9999px;
            color: #E5E7EB;
            font-size: 1rem;
+           box-sizing: border-box; /* Added for correct padding */
        }
        .fill-in-blank-input:focus {
            outline: none;
            border-color: #8B5CF6;
            box-shadow: 0 0 15px 3px rgba(139, 92, 246, 0.6);
        }
-       button[type="submit"] { background: linear-gradient(to right, #6D28D9, #8B5CF6); color: white; border: none; font-weight: bold; border-radius: 0.75rem; padding: 0.75rem; }
+       /* ✅ REFINED: Pill shape for submit button */
+       button[type="submit"] { background: linear-gradient(to right, #6D28D9, #8B5CF6); color: white; border: none; font-weight: bold; border-radius: 9999px; padding: 0.75rem; transition: all 0.2s; }
+       button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
     </style>
 </head>
 <body class="py-5">
@@ -41,20 +48,19 @@
             <div th:each="q, iterStat : ${quiz.questions}" class="mb-4 p-3 question-container">
                 <p class="fw-bold" th:text="${iterStat.index + 1} + '. ' + ${q.question}"></p>
 
-                <!-- ✅ REFINED: Check for options list instead of type string -->
                 <div th:if="${q.options != null and not #lists.isEmpty(q.options)}">
                     <!-- Multiple Choice Rendering -->
                     <div th:each="opt : ${q.options}">
                         <label class="option-card">
-                            <span style="flex-grow: 1; margin-right: 10px;" th:text="${opt}"></span>
+                            <span style="flex-grow: 1; margin-right: 10px; padding-left: 10px;" th:text="${opt}"></span>
                             <input type="radio" th:name="${'q' + iterStat.index}" th:value="${opt}" required onclick="updateSelected(this)">
                             <span class="checkmark"></span>
                         </label>
                     </div>
                 </div>
 
-                <!-- ✅ REFINED: Render text input if no options are present -->
                 <div th:unless="${q.options != null and not #lists.isEmpty(q.options)}">
+                    <!-- Fill in the Blank Rendering -->
                     <input type="text" th:name="${'q' + iterStat.index}" class="fill-in-blank-input" placeholder="Type your answer here..." required>
                 </div>
 
@@ -72,4 +78,3 @@
 </script>
 </body>
 </html>
-

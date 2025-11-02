@@ -32,15 +32,18 @@
         }
         h1 { margin-bottom: 20px; font-size: 2.2rem; color: #F9FAFB; }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
-        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; }
+        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; padding-left: 1rem; }
         .glow-container { position: relative; display: flex; align-items: center; justify-content: center; }
-        .white, .border, .darkBorderBg, .glow { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: -1; border-radius: 12px; }
+        /* ✅ REFINED: Pill shape border */
+        .white, .border, .darkBorderBg, .glow { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: -1; border-radius: 9999px; }
         .white::before, .border::before { content: ""; z-index: -2; position: absolute; width: 600px; height: 600px; transition: all 2s; top: 50%; left: 50%; }
         .border::before { transform: translate(-50%, -50%) rotate(70deg); background-image: conic-gradient(#010201, #3b82f6 5%, #010201 14%, #010201 50%, #ec4899 60%, #010201 64%); }
         .glow-container:hover > .border::before, .glow-container:focus-within > .border::before { transform: translate(-50%, -50%) rotate(-110deg); }
-        .input-group { display: flex; align-items: center; padding: 0 12px; border-radius: 8px; background-color: #010201; z-index: 1; width: 100%; }
-        input { padding: 12px 0; width: 100%; box-sizing: border-box; border: none; background-color: transparent; color: #E5E7EB; font-size: 1rem; outline: none; padding-left: 10px; }
-        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; }
+        /* ✅ REFINED: Pill shape input group */
+        .input-group { display: flex; align-items: center; padding: 0 12px; border-radius: 9999px; background-color: #010201; z-index: 1; width: 100%; }
+        input { padding: 12px 0; width: 100%; box-sizing: border-box; border: none; background-color: transparent; color: #E5E7EB; font-size: 1rem; outline: none; padding-left: 20px; }
+        /* ✅ REFINED: Pill shape button */
+        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 9999px; cursor: pointer; width: 100%; margin-top: 20px; transition: all 0.2s; }
         .btn:hover { background: #6D28D9; border-color: #8B5CF6; }
         .toggle-link { color: #8B5CF6; cursor: pointer; text-decoration: underline; margin-top: 1rem; display: inline-block; }
         .alert { padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
@@ -49,6 +52,7 @@
     </style>
 </head>
 <body>
+<!-- ... (rest of the body remains the same) ... -->
 <div class="aurora-background"></div>
 <div class="container">
     <div id="login-form">

@@ -6,38 +6,54 @@
     <style>
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #0a0520; color: #E5E7EB; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .aurora-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at 20% 30%, rgba(138, 43, 226, 0.8) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(0, 191, 255, 0.7) 0%, transparent 70%), linear-gradient(135deg, #000000 0%, #0a0520 100%); animation: aurora-drift 25s infinite alternate ease-in-out; z-index: 0; }
+        /* ✅ REFINED: Kept large radius for main container */
         .container { position: relative; z-index: 1; text-align: center; background: rgba(31, 41, 55, 0.8); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid #374151; width: 90%; max-width: 500px; }
         .header-bar { position: absolute; top: 20px; right: 30px; display: flex; align-items: center; gap: 1.5rem; z-index: 2; }
-        .header-link { color: #E5E7EB; text-decoration: none; font-weight: bold; }
-        .logout-button { background: none; border: none; cursor: pointer; padding: 0; }
+        /* ✅ REFINED: Pill shape for header links */
+        .header-link { color: #E5E7EB; text-decoration: none; font-weight: bold; padding: 0.5rem 1rem; border-radius: 9999px; transition: background-color 0.2s; }
+        .header-link:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .logout-button { background: none; border: none; cursor: pointer; padding: 0; font-size: 1em; } /* Removed padding to align with link */
+        .logout-button:hover { background-color: transparent !important; } /* Ensure no bg color on button itself */
         h1 { margin-bottom: 20px; font-size: 2.2rem; color: #F9FAFB; }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
-        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; }
+        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; padding-left: 1rem; } /* Added padding */
         .glow-container { position: relative; display: flex; align-items: center; justify-content: center; }
-        .border { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: -1; border-radius: 12px; filter: blur(0.5px); }
+        /* ✅ REFINED: Pill shape for glow border */
+        .border { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: -1; border-radius: 9999px; filter: blur(0.5px); }
         .border::before { content: ""; z-index: -2; position: absolute; width: 600px; height: 600px; transition: all 2s; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(70deg); background-image: conic-gradient(#010201, #3b82f6 5%, #010201 14%, #010201 50%, #ec4899 60%, #010201 64%); }
         .glow-container:hover > .border::before, .glow-container:focus-within > .border::before { transform: translate(-50%, -50%) rotate(-110deg); }
-        .input-group { display: flex; align-items: center; padding: 0 12px; border-radius: 8px; background-color: #010201; z-index: 1; width: 100%; }
+        /* ✅ REFINED: Pill shape for input groups */
+        .input-group { display: flex; align-items: center; padding: 0 12px; border-radius: 9999px; background-color: #010201; z-index: 1; width: 100%; }
         input, select { padding: 12px 0; width: 100%; box-sizing: border-box; border: none; background-color: transparent; color: #E5E7EB; font-size: 1rem; outline: none; }
-        .composite-input { padding-left: 10px; flex-grow: 1; min-width: 0; }
-        .file-upload-button { padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; flex-shrink: 0; }
+        .composite-input { padding-left: 20px; flex-grow: 1; min-width: 0; } /* Increased left padding */
+        .file-upload-button { padding: 8px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; flex-shrink: 0; }
         #file-name-display { font-size: 0.8rem; margin-left: 8px; color: #9CA3AF; }
-        select { -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1rem center; background-size: .65em auto; }
-        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; }
-        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: rgba(17, 24, 39, 0.9); z-index: 1000; }
+        select { -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1.5rem center; background-size: .65em auto; padding-left: 20px; } /* Increased left padding */
+        /* ✅ REFINED: Pill shape for button */
+        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 9999px; cursor: pointer; width: 100%; margin-top: 20px; transition: all 0.2s; }
+        .btn:hover { background-color: #6D28D9; border-color: #8B5CF6; }
+        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: rgba(17, 24, 39, 0.9); z-index: 1000; visibility: hidden; opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
+        .loader-wrapper.show { visibility: visible; opacity: 1; }
+        /* ... (pencil loader styles remain the same) ... */
         .pencil { display: block; width: 10em; height: 10em; }
-        .pencil__body1, .pencil__eraser, .pencil__stroke { animation: 3s linear infinite; }
+        .pencil__body1, .pencil__body2, .pencil__body3, .pencil__eraser, .pencil__eraser-skew, .pencil__point, .pencil__rotate, .pencil__stroke {
+            animation: 3s linear infinite;
+        }
+        /* ... (rest of pencil styles) ... */
     </style>
 </head>
 <body>
 <div class="aurora-background"></div>
 <div sec:authorize="isAuthenticated()" class="header-bar">
     <a th:href="@{/history}" class="header-link">📜 History</a>
-    <form th:action="@{/logout}" method="post"><button type="submit" class="logout-button header-link">Logout</button></form>
+    <form th:action="@{/logout}" method="post">
+        <!-- ✅ REFINED: Applied link class to button for consistent pill shape -->
+        <button type="submit" class="logout-button header-link">Logout</button>
+    </form>
 </div>
 <div class="container">
     <h1>AI Quiz Generator 🎓</h1>
-    <p>Enter a topic, or upload a document.</p>
+    <p class="mb-4" style="color: #9CA3AF;">Enter a topic, or upload a document.</p>
     <form id="quiz-form" action="/generate-quiz" method="post" enctype="multipart/form-data">
         <div class="form-group">
             <label for="topic">Topic or File:</label>
@@ -45,18 +61,21 @@
                 <div class="border"></div>
                 <div class="input-group">
                     <input id="topic" type="text" name="topic" placeholder="Type a topic..." class="composite-input">
-                    <label for="file" class="file-upload-button"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg><span id="file-name-display"></span></label>
+                    <label for="file" class="file-upload-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                        <span id="file-name-display"></span>
+                    </label>
                     <input type="file" name="file" id="file" accept=".txt,.pdf,.docx" style="display: none;">
                 </div>
             </div>
         </div>
-        <!-- ✅ ADDED: Number of questions input -->
         <div class="form-group">
             <label for="numberOfQuestions">Number of Questions:</label>
             <div class="glow-container">
                 <div class="border"></div>
                 <div class="input-group">
-                    <input id="numberOfQuestions" type="number" name="numberOfQuestions" value="5" min="1" max="10">
+                    <!-- ✅ REFINED: Set max to 100 -->
+                    <input id="numberOfQuestions" type="number" name="numberOfQuestions" value="5" min="1" max="100" class="composite-input">
                 </div>
             </div>
         </div>
@@ -67,8 +86,8 @@
                 <div class="input-group">
                     <select id="difficulty" name="difficulty">
                         <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option> <!-- ✅ ADDED: Hard option -->
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
                     </select>
                 </div>
             </div>
@@ -80,7 +99,7 @@
                 <div class="input-group">
                     <select id="type" name="type">
                         <option value="Multiple Choice">Multiple Choice</option>
-                        <option value="Fill in the Blank">Fill in the Blank</option> <!-- ✅ ADDED: Fill in the Blank option -->
+                        <option value="Fill in the Blank">Fill in the Blank</option>
                     </select>
                 </div>
             </div>
@@ -88,11 +107,53 @@
         <button type="submit" class="btn"><span>Generate</span></button>
     </form>
 </div>
-<div class="loader-wrapper" style="display: none;">
-    <!-- Pencil loader SVG -->
+<!-- ✅ REFINED: Loader HTML -->
+<div class="loader-wrapper" id="loader">
+    <svg class="pencil" viewBox="0 0 200 200" width="200px" height="200px" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <clipPath id="pencil-eraser">
+                <rect height="30" width="30" ry="5" rx="5"></rect>
+            </clipPath>
+        </defs>
+        <circle class="pencil__stroke" r="70" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="439.82 439.82" stroke-dashoffset="439.82" transform="rotate(-113,100,100)"></circle>
+        <g class="pencil__rotate" transform="rotate(-90,100,100)">
+            <g fill="none">
+                <path class="pencil__body1" d="M162.72,100H100" stroke="hsl(223,90%,50%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path class="pencil__body2" d="M100,100H37.28" stroke="hsl(223,90%,60%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path class="pencil__body3" d="M37.28,100H19.69" stroke="hsl(223,90%,70%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
+                <g class="pencil__eraser" transform="translate(162.72,100) rotate(90)">
+                    <g class="pencil__eraser-skew">
+                        <rect fill="hsl(223,90%,70%)" ry="5" rx="5" width="30" height="30"></rect>
+                        <rect fill="hsl(223,90%,60%)" width="30" height="30" clip-path="url(#pencil-eraser)" transform="translate(0, -15)"></rect>
+                        <rect fill="hsl(223,10%,90%)" width="30" height="5" transform="translate(0, -15)"></rect>
+                        <rect fill="hsl(223,10%,70%)" width="30" height="5" transform="translate(0, -10)"></rect>
+                        <rect fill="hsl(223,10%,80%)" width="30" height="5" transform="translate(0, -5)"></rect>
+                        <rect fill="hsl(223,90%,60%)" width="30" height="5" transform="translate(0, 0)"></rect>
+                        <rect fill="hsl(223,90%,50%)" width="30" height="5" transform="translate(0, 5)"></rect>
+                        <rect fill="hsl(223,90%,40%)" width="30" height="5" transform="translate(0, 10)"></rect>
+                    </g>
+                </g>
+                <path class="pencil__point" d="M19.69,100L0,100" stroke="hsl(33,90%,70%)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path class="pencil__point" d="M0,100L-15,100" stroke="hsl(223,10%,10%)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+        </g>
+    </svg>
 </div>
+
 <script>
-    // Scripts for loader and file input
+    // ✅ REFINED: Loader script
+    const form = document.getElementById('quiz-form');
+    const loader = document.getElementById('loader');
+    form.addEventListener('submit', () => {
+        loader.classList.add('show');
+    });
+
+    // File input script
+    const fileInput = document.getElementById('file');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    fileInput.addEventListener('change', () => {
+        fileNameDisplay.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : '';
+    });
 </script>
 </body>
 </html>

@@ -33,17 +33,18 @@
             position: relative;
             z-index: 1;
         }
-        /* ✅ REFINED: Make heading bright white and bolder */
         h1 {
             font-weight: 700 !important;
             color: #FFFFFF !important;
         }
+        /* ✅ REFINED: Kept large radius for cards */
         .history-card {
             background: rgba(31, 41, 55, 0.8);
             border: 1px solid #374151;
             border-radius: 1rem;
             margin-bottom: 1.5rem;
             backdrop-filter: blur(5px);
+            overflow: hidden; /* Ensures child elements conform to border radius */
         }
         .history-card h2, .history-card p {
             color: #F9FAFB !important;
@@ -85,7 +86,25 @@
         }
         .correct-answer-text { color: #34D399; }
         .user-answer-incorrect { color: #F87171; text-decoration: line-through; }
-        .btn-primary { background: linear-gradient(to right, #6D28D9, #8B5CF6); border: none; }
+        /* ✅ REFINED: Pill shape for button */
+        .btn-primary {
+            background: linear-gradient(to right, #6D28D9, #8B5CF6);
+            border: none;
+            border-radius: 9999px; /* Added pill shape */
+            padding: 0.5rem 1.25rem; /* Adjusted padding */
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+        /* Override default Bootstrap button focus */
+        .btn-primary:focus {
+            box-shadow: 0 0 0 0.25rem rgba(139, 92, 246, 0.5);
+        }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -94,7 +113,7 @@
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">📜 Your Quiz History</h1>
-        <a href="/" class="btn btn-primary">🏠 Back to Home</a>
+        <a href="/" class="btn-primary">🏠 Back to Home</a>
     </div>
 
     <div th:if="${history.isEmpty()}" class="text-center p-5 history-card">

@@ -1,28 +1,92 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<!-- ✅ ADDED data-bs-theme="dark" -->
+<html xmlns:th="http://www.thymeleaf.org" data-bs-theme="dark">
 <head>
     <title>Quiz Results</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- ✅ MOVED Bootstrap CSS *before* custom styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
-        body { background-color: #111827; color: #E5E7EB; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .results-container { max-width: 800px; width: 90%; }
-        .score-card { background: #1F2937; border: 1px solid #374151; color: white; border-radius: 1.5rem; box-shadow: 0 0 30px rgba(139, 92, 246, 0.1); }
+        body {
+            /* ✅ UPDATED to match other pages */
+            background-color: #0a0520;
+            color: #E5E7EB;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 2rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: relative; /* Needed for background */
+            overflow-x: hidden; /* Hide horizontal overflow */
+        }
+
+        /* ✅ ADDED Aurora Background styles */
+        .aurora-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 20% 30%, rgba(138, 43, 226, 0.7) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 50%, rgba(0, 191, 255, 0.6) 0%, transparent 70%),
+                        linear-gradient(135deg, #000000 0%, #0a0520 100%);
+            animation: aurora-drift 25s infinite alternate ease-in-out;
+            z-index: -1;
+        }
+        @keyframes aurora-drift {
+            from { background-position: 0% 0%, 0% 0%, 0% 0%; }
+            to { background-position: 5% 10%, -10% -5%, 15% 0%; }
+        }
+
+        .results-container {
+            max-width: 800px;
+            width: 90%;
+            position: relative; /* Ensure it's above background */
+            z-index: 1;
+        }
+
+        /* ✅ REFINED: Kept large radius for cards, added blur */
+        .score-card {
+            background: rgba(31, 41, 55, 0.8); /* Added transparency */
+            border: 1px solid #374151;
+            color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+            backdrop-filter: blur(5px); /* Added blur */
+        }
         .score-text { font-size: 4rem; font-weight: bold; background: -webkit-linear-gradient(45deg, #8B5CF6, #EC4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .progress { background-color: #374151; height: 30px; border-radius: 1rem; padding: 4px; }
-        .progress-bar { background: linear-gradient(to right, #8B5CF6, #EC4899); border-radius: 0.8rem; font-weight: bold; box-shadow: 0 0 15px rgba(236, 72, 153, 0.5); animation: progress-animation 2s ease-out; }
+        .progress { background-color: #374151; height: 30px; border-radius: 9999px; padding: 4px; }
+        .progress-bar { background: linear-gradient(to right, #8B5CF6, #EC4899); border-radius: 9999px; font-weight: bold; box-shadow: 0 0 15px rgba(236, 72, 153, 0.5); animation: progress-animation 2s ease-out; }
         @keyframes progress-animation { from { width: 0% !important; } }
-        .result-question-card { background-color: #1F2937; border: 1px solid #374151; border-left-width: 5px; border-radius: 0.75rem; margin-bottom: 3rem !important; }
+
+        /* ✅ REFINED: Added transparency and blur */
+        .result-question-card {
+            background-color: rgba(31, 41, 55, 0.8); /* Added transparency */
+            border: 1px solid #374151;
+            border-left-width: 5px;
+            border-radius: 0.75rem;
+            margin-bottom: 3rem !important;
+            backdrop-filter: blur(5px); /* Added blur */
+        }
         .border-success { border-left-color: #10B981 !important; }
         .border-danger { border-left-color: #EF4444 !important; }
         .correct-answer-text { font-weight: bold; color: #34D399; }
         .user-answer-incorrect { color: #F87171; text-decoration: line-through; }
-        .btn-primary, .btn-secondary { border: none; font-weight: bold; border-radius: 0.75rem; padding: 0.75rem 1.5rem; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(to right, #6D28D9, #8B5CF6); }
-        .btn-secondary { background-color: #4B5563; }
+
+        /* ✅ REFINED: Pill shape for buttons */
+        .btn-primary, .btn-secondary { border: none; font-weight: bold; border-radius: 9999px; padding: 0.75rem 1.5rem; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(to right, #6D28D9, #8B5CF6); color: white; }
+        .btn-secondary { background-color: #4B5563; color: white; }
         .btn-primary:hover, .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
     </style>
 </head>
 <body class="py-5">
+<!-- ✅ ADDED Aurora Background div -->
+<div class="aurora-background"></div>
+
 <div class="container results-container">
     <div class="card shadow-lg mb-5 text-center score-card">
         <div class="card-body p-5">
@@ -39,7 +103,6 @@
     </div>
     <h2 class="text-center mb-4">Detailed Answer Review</h2>
 
-    <!-- ✅ FIX: This now loops over the 'questionResults' list provided by the controller -->
     <div th:each="qr : ${questionResults}">
         <div th:classappend="${qr.correct ? 'border-success' : 'border-danger'}"
              class="card shadow-sm result-question-card">
