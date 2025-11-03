@@ -1,37 +1,34 @@
-Compiled output
-/target/
+--- Security ---
 
-Log files
-*.log
+Ignore the local properties file that contains secret keys
 
-IDE files
+/application-local.properties
+*.env
+
+--- Build Artifacts ---
+
+Compiled class files
+
+target/
+*.jar
+*.war
+
+--- IDE Files ---
+
+IntelliJ IDEA
+
 .idea/
 *.iml
 *.iws
 
-Local-only properties file that contains secret keys
-This is the most important line for security.
-application-local.properties
+VS Code
 
+.vscode/
 
-### How to Fix Your Project (3 Steps)
+--- Log files ---
 
-Please follow these steps exactly:
+*.log
 
-1.  **Create the File in the Correct Location:**
-    * Go to the **root folder** of your project (the main `demo` folder).
-    * Create a new file named exactly **`.gitignore`**.
-    * Copy the content from the file I created above and paste it into your new `.gitignore` file.
+--- Other ---
 
-2.  **Untrack the Secret File:**
-    * Open your terminal, navigate to your `demo` project folder, and run this command to tell Git to stop tracking the secret file:
-        ```bash
-        git rm --cached src/main/resources/application-local.properties
-        ```
-
-3.  **Commit Your Changes:**
-    * Now, commit this change to your repository:
-        ```bash
-        git add .gitignore
-        git commit -m "Add .gitignore and stop tracking local properties"
-        git push
+.DS_Store
