@@ -4,56 +4,154 @@
     <title>AI Quiz App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #0a0520; color: #E5E7EB; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .aurora-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at 20% 30%, rgba(138, 43, 226, 0.8) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(0, 191, 255, 0.7) 0%, transparent 70%), linear-gradient(135deg, #000000 0%, #0a0520 100%); animation: aurora-drift 25s infinite alternate ease-in-out; z-index: 0; }
-        /* ✅ REFINED: Kept large radius for main container */
-        .container { position: relative; z-index: 1; text-align: center; background: rgba(31, 41, 55, 0.8); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid #374151; width: 90%; max-width: 500px; }
-        .header-bar { position: absolute; top: 20px; right: 30px; display: flex; align-items: center; gap: 1.5rem; z-index: 2; }
-        /* ✅ REFINED: Pill shape for header links */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #0a0520; color: #E5E7EB; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-x: hidden; padding-top: 60px; padding-bottom: 20px; }
+        .aurora-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at 20% 30%, rgba(138, 43, 226, 0.8) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(0, 191, 255, 0.7) 0%, transparent 70%), linear-gradient(135deg, #000000 0%, #0a0520 100%); animation: aurora-drift 25s infinite alternate ease-in-out; z-index: 0; }
+        @keyframes aurora-drift {
+            from { background-position: 0% 0%, 0% 0%, 0% 0%; }
+            to { background-position: 5% 10%, -10% -5%, 15% 0%; }
+        }
+        .container { position: relative; z-index: 1; text-align: center; background: rgba(31, 41, 55, 0.8); padding: 40px; border-radius: 1.5rem; backdrop-filter: blur(10px); border: 1px solid #374151; width: 90%; max-width: 500px; }
+
+        /* === ✅ MODIFIED: Header Bar === */
+        .header-bar { position: absolute; top: 20px; right: 30px; display: flex; align-items: center; gap: 1rem; z-index: 2; }
         .header-link { color: #E5E7EB; text-decoration: none; font-weight: bold; padding: 0.5rem 1rem; border-radius: 9999px; transition: background-color 0.2s; }
         .header-link:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .logout-button { background: none; border: none; cursor: pointer; padding: 0; font-size: 1em; } /* Removed padding to align with link */
-        .logout-button:hover { background-color: transparent !important; } /* Ensure no bg color on button itself */
+        .logout-button { background: none; border: none; cursor: pointer; padding: 0; color: #E5E7EB; font-weight: bold; padding: 0.5rem 1rem; border-radius: 9999px; transition: background-color 0.2s; }
+        .logout-button:hover { background-color: rgba(255, 255, 255, 0.1); }
+        /* ============================ */
+
         h1 { margin-bottom: 20px; font-size: 2.2rem; color: #F9FAFB; }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
-        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; padding-left: 1rem; } /* Added padding */
-        .glow-container { position: relative; display: flex; align-items: center; justify-content: center; }
-        /* ✅ REFINED: Pill shape for glow border */
-        .border { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: -1; border-radius: 9999px; filter: blur(0.5px); }
+        label { display: block; margin-bottom: 0.5rem; color: #9CA3AF; }
+
+        .glow-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: box-shadow 0.3s ease-in-out;
+            border-radius: 9999px;
+        }
+        .glow-container:hover, .glow-container:focus-within {
+            box-shadow: 0 0 15px 2px rgba(139, 92, 246, 0.4);
+            transition: box-shadow 0.3s ease-in-out;
+        }
+        .border {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            border-radius: 9999px;
+            filter: blur(3px);
+            opacity: 0.8;
+        }
+
         .border::before { content: ""; z-index: -2; position: absolute; width: 600px; height: 600px; transition: all 2s; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(70deg); background-image: conic-gradient(#010201, #3b82f6 5%, #010201 14%, #010201 50%, #ec4899 60%, #010201 64%); }
         .glow-container:hover > .border::before, .glow-container:focus-within > .border::before { transform: translate(-50%, -50%) rotate(-110deg); }
-        /* ✅ REFINED: Pill shape for input groups */
         .input-group { display: flex; align-items: center; padding: 0 12px; border-radius: 9999px; background-color: #010201; z-index: 1; width: 100%; }
         input, select { padding: 12px 0; width: 100%; box-sizing: border-box; border: none; background-color: transparent; color: #E5E7EB; font-size: 1rem; outline: none; }
-        .composite-input { padding-left: 20px; flex-grow: 1; min-width: 0; } /* Increased left padding */
+        .composite-input { padding-left: 10px; flex-grow: 1; min-width: 0; }
+
+        /* === ✅ MODIFIED: File Upload Styles === */
         .file-upload-button { padding: 8px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; flex-shrink: 0; }
-        #file-name-display { font-size: 0.8rem; margin-left: 8px; color: #9CA3AF; }
-        select { -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1.5rem center; background-size: .65em auto; padding-left: 20px; } /* Increased left padding */
-        /* ✅ REFINED: Pill shape for button */
-        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 9999px; cursor: pointer; width: 100%; margin-top: 20px; transition: all 0.2s; }
-        .btn:hover { background-color: #6D28D9; border-color: #8B5CF6; }
-        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: rgba(17, 24, 39, 0.9); z-index: 1000; visibility: hidden; opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
-        .loader-wrapper.show { visibility: visible; opacity: 1; }
-        /* ... (pencil loader styles remain the same) ... */
+        #file-name-display { font-size: 0.8rem; margin-left: 8px; color: #9CA3AF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+        /* ==================================== */
+
+        select { -webkit-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1rem center; background-size: .65em auto; }
+        .btn { display: flex; justify-content: center; align-items: center; padding: 12px 25px; border: 1px solid #374151; background-color: #1F2937; color: #E5E7EB; border-radius: 9999px; cursor: pointer; width: 100%; margin-top: 20px; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+        .loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: rgba(17, 24, 39, 0.9); z-index: 1000; }
         .pencil { display: block; width: 10em; height: 10em; }
-        .pencil__body1, .pencil__body2, .pencil__body3, .pencil__eraser, .pencil__eraser-skew, .pencil__point, .pencil__rotate, .pencil__stroke {
-            animation: 3s linear infinite;
+        .pencil__body1, .pencil__body2, .pencil__body3, .pencil__lead, .pencil__handle, .pencil__eraser, .pencil__eraser-skew { fill: #fdd41f; }
+        .pencil__body1 { width: 3.5em; height: 1em; left: 3.25em; top: 4.5em; }
+        .pencil__body2 { width: 2.25em; height: 1em; left: 4.125em; top: 3.5em; transform: rotate(225deg); }
+        .pencil__body3 { width: 2.25em; height: 1em; left: 4.125em; top: 5.5em; transform: rotate(135deg); }
+        .pencil__lead { width: 1.15em; height: 1.15em; left: 2.1em; top: 4.425em; transform: rotate(135deg); }
+        .pencil__handle { width: 4.5em; height: 1.25em; left: 5.5em; top: 4.375em; }
+        .pencil__eraser { width: 1em; height: 1.25em; left: 10em; top: 4.375em; }
+        .pencil__eraser-skew { width: 1em; height: 1.25em; left: 10em; top: 4.375em; transform: skewX(-25deg); }
+        .pencil__stroke { position: absolute; left: 0; top: 4.5em; width: 10em; height: 1em; background: linear-gradient(90deg,transparent 2.5em,#fdd41f 2.5em 3.25em,transparent 3.25em 3.5em,#272727 3.5em 4.25em,transparent 4.25em 4.5em,#fdd41f 4.5em 5.5em,transparent 5.5em 5.75em,#f980b9 5.75em 10em); clip-path: polygon(0 0,10.05em 0.05em,10.05em 0.95em,0 1em); }
+        .pencil__body1, .pencil__body2, .pencil__body3, .pencil__lead, .pencil__handle, .pencil__eraser, .pencil__eraser-skew, .pencil__stroke { position: absolute; display: block; transform-origin: 0 0; }
+        .pencil__body1, .pencil__eraser, .pencil__stroke { animation: 3s linear infinite; }
+        .pencil__body2 { animation: 3s linear infinite -0.1s; }
+        .pencil__body3 { animation: 3s linear infinite -0.2s; }
+        .pencil__lead { animation: 3s linear infinite -0.3s; }
+        .pencil__handle { animation: 3s linear infinite -0.4s; }
+        .pencil__eraser-skew { animation: 3s linear infinite -0.5s; }
+        @keyframes pencil-movement { from { transform: translate(-10em,10em) rotate(0deg); } to { transform: translate(40em, -20em) rotate(220deg); } }
+        @keyframes pencil-body1-anim { from, 10% { transform: scaleX(0); } 30%, 35% { transform: scaleX(1); } 80%, to { transform: scaleX(0); } }
+        @keyframes pencil-body2-anim { from, 10% { transform: translate(3.25em,3.5em) rotate(225deg) scaleX(0); } 30%, 35% { transform: translate(3.25em,3.5em) rotate(225deg) scaleX(1); } 80%, to { transform: translate(3.25em,3.5em) rotate(225deg) scaleX(0); } }
+        @keyframes pencil-body3-anim { from, 10% { transform: translate(3.25em,5.5em) rotate(135deg) scaleX(0); } 30%, 35% { transform: translate(3.25em,5.5em) rotate(135deg) scaleX(1); } 80%, to { transform: translate(3.25em,5.5em) rotate(135deg) scaleX(0); } }
+        @keyframes pencil-lead-anim { from, 10% { transform: translate(1.1em,4.425em) rotate(135deg) scaleX(0); } 30%, 35% { transform: translate(1.1em,4.425em) rotate(135deg) scaleX(1); } 80%, to { transform: translate(1.1em,4.425em) rotate(135deg) scaleX(0); } }
+        @keyframes pencil-handle-anim { from, 10% { transform: translate(4.5em,4.375em) scaleX(0); } 30%, 35% { transform: translate(4.5em,4.375em) scaleX(1); } 80%, to { transform: translate(4.5em,4.375em) scaleX(0); } }
+        @keyframes pencil-eraser-anim { from, 10% { transform: translate(9em,4.375em) scaleX(0); } 30%, 35% { transform: translate(9em,4.375em) scaleX(1); } 80%, to { transform: translate(9em,4.375em) scaleX(0); } }
+        @keyframes pencil-eraser-skew-anim { from, 10% { transform: translate(9em,4.375em) scaleX(0) skewX(-25deg); } 30%, 35% { transform: translate(9em,4.375em) scaleX(1) skewX(-25deg); } 80%, to { transform: translate(9em,4.375em) scaleX(0) skewX(-25deg); } }
+        @keyframes pencil-stroke-anim { from, 10% { clip-path: polygon(0 0,0 0.05em,0 0.95em,0 1em); } 30%, 35% { clip-path: polygon(0 0,10.05em 0.05em,10.05em 0.95em,0 1em); } 80%, to { clip-path: polygon(0 0,0 0.05em,0 0.95em,0 1em); } }
+
+        .segmented-control {
+            display: flex;
+            width: 100%;
+            border-radius: 9999px;
+            background-color: #010201;
+            overflow: hidden;
+            position: relative;
+            z-index: 1; /* To appear above glow border */
         }
-        /* ... (rest of pencil styles) ... */
+        .segmented-control input[type="radio"] {
+            display: none; /* Hide the actual radio button */
+        }
+        .segmented-control label {
+            flex: 1; /* Each option takes equal space */
+            padding: 12px 0;
+            text-align: center;
+            color: #9CA3AF;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            margin-bottom: 0; /* Override form-group label styles */
+            line-height: 1.5; /* Ensure consistent height */
+        }
+        .segmented-control input[type="radio"]:checked + label {
+            background-color: #6D28D9; /* Purple background for active */
+            color: #FFFFFF;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(109, 40, 217, 0.5);
+        }
+        .segmented-control label:not(:last-of-type) {
+            border-right: 1px solid #374151;
+        }
+        .glow-container.no-padding {
+            padding: 0;
+            background-color: #010201; /* Match background */
+            border-radius: 9999px; /* Match border */
+        }
+
     </style>
 </head>
 <body>
 <div class="aurora-background"></div>
+
 <div sec:authorize="isAuthenticated()" class="header-bar">
+    <!-- ✅ ADDED Profile Link -->
+    <a th:href="@{/profile}" class="header-link">👤 Profile</a>
     <a th:href="@{/history}" class="header-link">📜 History</a>
     <form th:action="@{/logout}" method="post">
-        <!-- ✅ REFINED: Applied link class to button for consistent pill shape -->
-        <button type="submit" class="logout-button header-link">Logout</button>
+        <button type="submit" class="logout-button">Logout</button>
     </form>
 </div>
+
 <div class="container">
     <h1>AI Quiz Generator 🎓</h1>
-    <p class="mb-4" style="color: #9CA3AF;">Enter a topic, or upload a document.</p>
+    <p>Enter a topic, or upload a document.</p>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"
+         style="background-color: rgba(239, 68, 68, 0.2); color: #F87171; border-radius: 9999px; padding: 0.75rem; margin-bottom: 1rem;">
+    </div>
+    <div class="alert alert-danger" style="background-color: rgba(239, 68, 68, 0.2); color: #F87171; border-radius: 9999px; padding: 0.75rem; margin-bottom: 1rem; display: none;">
+    </div>
+
+
     <form id="quiz-form" action="/generate-quiz" method="post" enctype="multipart/form-data">
         <div class="form-group">
             <label for="topic">Topic or File:</label>
@@ -61,99 +159,166 @@
                 <div class="border"></div>
                 <div class="input-group">
                     <input id="topic" type="text" name="topic" placeholder="Type a topic..." class="composite-input">
-                    <label for="file" class="file-upload-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                    <!-- === ✅ MODIFIED: Added IDs and new SVGs === -->
+                    <label for="file" class="file-upload-button" id="file-label">
+                        <!-- Upload Icon -->
+                        <svg id="upload-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+                        <!-- Clear Icon (hidden) -->
+                        <svg id="clear-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16" style="display: none; color: #F87171;">
+                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+                        </svg>
                         <span id="file-name-display"></span>
                     </label>
                     <input type="file" name="file" id="file" accept=".txt,.pdf,.docx" style="display: none;">
                 </div>
             </div>
         </div>
+
         <div class="form-group">
             <label for="numberOfQuestions">Number of Questions:</label>
             <div class="glow-container">
                 <div class="border"></div>
                 <div class="input-group">
-                    <!-- ✅ REFINED: Set max to 100 -->
-                    <input id="numberOfQuestions" type="number" name="numberOfQuestions" value="5" min="1" max="100" class="composite-input">
+                    <input id="numberOfQuestions" type="number" name="numberOfQuestions" value="5" min="1" style="padding-left: 1rem;">
                 </div>
             </div>
         </div>
+
         <div class="form-group">
-            <label for="difficulty">Difficulty:</label>
+            <label for="totalTime">Total Quiz Time:</label>
             <div class="glow-container">
                 <div class="border"></div>
                 <div class="input-group">
-                    <select id="difficulty" name="difficulty">
-                        <option value="easy">Easy</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="hard">Hard</option>
+                    <select id="totalTime" name="totalTime" style="padding-left: 1rem;">
+                        <option value="300">5 Minutes</option>
+                        <option value="600" selected>10 Minutes</option>
+                        <option value="900">15 Minutes</option>
+                        <option value="0">No Timer</option>
                     </select>
                 </div>
             </div>
         </div>
+
         <div class="form-group">
-            <label for="type">Question Type:</label>
-            <div class="glow-container">
+            <label>Difficulty:</label>
+            <div class="glow-container no-padding"> <!-- Added no-padding -->
                 <div class="border"></div>
-                <div class="input-group">
-                    <select id="type" name="type">
-                        <option value="Multiple Choice">Multiple Choice</option>
-                        <option value="Fill in the Blank">Fill in the Blank</option>
-                    </select>
+                <div class="segmented-control">
+                    <input type="radio" id="diff-easy" name="difficulty" value="easy" checked>
+                    <label for="diff-easy">Easy</label>
+
+                    <input type="radio" id="diff-medium" name="difficulty" value="medium">
+                    <label for="diff-medium">Medium</label>
+
+                    <input type="radio" id="diff-hard" name="difficulty" value="hard">
+                    <label for="diff-hard">Hard</label>
                 </div>
             </div>
         </div>
+
+        <div class="form-group">
+            <label>Question Type:</label>
+            <div class="glow-container no-padding">
+                <div class="border"></div>
+                <div class="segmented-control">
+                    <input type="radio" id="type-mc" name="type" value="Multiple Choice" checked>
+                    <label for="type-mc">Multiple Choice</label>
+
+                    <input type="radio" id="type-fill" name="type" value="Fill in the Blank">
+                    <label for="type-fill">Fill in the Blank</label>
+                </div>
+            </div>
+        </div>
+
         <button type="submit" class="btn"><span>Generate</span></button>
     </form>
 </div>
-<!-- ✅ REFINED: Loader HTML -->
-<div class="loader-wrapper" id="loader">
-    <svg class="pencil" viewBox="0 0 200 200" width="200px" height="200px" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <clipPath id="pencil-eraser">
-                <rect height="30" width="30" ry="5" rx="5"></rect>
-            </clipPath>
-        </defs>
-        <circle class="pencil__stroke" r="70" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="439.82 439.82" stroke-dashoffset="439.82" transform="rotate(-113,100,100)"></circle>
-        <g class="pencil__rotate" transform="rotate(-90,100,100)">
-            <g fill="none">
-                <path class="pencil__body1" d="M162.72,100H100" stroke="hsl(223,90%,50%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path class="pencil__body2" d="M100,100H37.28" stroke="hsl(223,90%,60%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path class="pencil__body3" d="M37.28,100H19.69" stroke="hsl(223,90%,70%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"></path>
-                <g class="pencil__eraser" transform="translate(162.72,100) rotate(90)">
-                    <g class="pencil__eraser-skew">
-                        <rect fill="hsl(223,90%,70%)" ry="5" rx="5" width="30" height="30"></rect>
-                        <rect fill="hsl(223,90%,60%)" width="30" height="30" clip-path="url(#pencil-eraser)" transform="translate(0, -15)"></rect>
-                        <rect fill="hsl(223,10%,90%)" width="30" height="5" transform="translate(0, -15)"></rect>
-                        <rect fill="hsl(223,10%,70%)" width="30" height="5" transform="translate(0, -10)"></rect>
-                        <rect fill="hsl(223,10%,80%)" width="30" height="5" transform="translate(0, -5)"></rect>
-                        <rect fill="hsl(223,90%,60%)" width="30" height="5" transform="translate(0, 0)"></rect>
-                        <rect fill="hsl(223,90%,50%)" width="30" height="5" transform="translate(0, 5)"></rect>
-                        <rect fill="hsl(223,90%,40%)" width="30" height="5" transform="translate(0, 10)"></rect>
-                    </g>
-                </g>
-                <path class="pencil__point" d="M19.69,100L0,100" stroke="hsl(33,90%,70%)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path class="pencil__point" d="M0,100L-15,100" stroke="hsl(223,10%,10%)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
-            </g>
-        </g>
-    </svg>
+
+<div class="loader-wrapper" style="display: none;">
+    <div class="pencil">
+        <div class="pencil__body1"></div>
+        <div class="pencil__body2"></div>
+        <!-- === ✅ TYPO FIX 1 === -->
+        <div class="pencil__body3"></div>
+        <!-- === ✅ TYPO FIX 2 === -->
+        <div class="pencil__lead"></div>
+        <!-- === ✅ TYPO FIX 3 === -->
+        <div class="pencil__handle"></div>
+        <div class="pencil__eraser"></div>
+        <div class="pencil__eraser-skew"></div>
+        <div class="pencil__stroke"></div>
+    </div>
 </div>
 
 <script>
-    // ✅ REFINED: Loader script
-    const form = document.getElementById('quiz-form');
-    const loader = document.getElementById('loader');
-    form.addEventListener('submit', () => {
-        loader.classList.add('show');
+    // === ✅ MODIFIED SCRIPT ===
+    // This script replaces the old one to add the new file handling logic
+
+    const fileInput = document.getElementById('file');
+    const fileLabel = document.getElementById('file-label');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const uploadIcon = document.getElementById('upload-icon');
+    const clearIcon = document.getElementById('clear-icon');
+    const topicInput = document.getElementById('topic');
+
+    // Show file name on select
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            let fileName = fileInput.files[0].name;
+            // Shorten name if it's too long
+            if (fileName.length > 15) {
+                fileName = fileName.substring(0, 10) + "..." + fileName.substring(fileName.length - 5);
+            }
+            fileNameDisplay.textContent = fileName;
+            uploadIcon.style.display = 'none';
+            clearIcon.style.display = 'block';
+            topicInput.value = ''; // Clear topic input
+            topicInput.placeholder = 'Using file...';
+            topicInput.disabled = true;
+        }
     });
 
-    // File input script
-    const fileInput = document.getElementById('file');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    fileInput.addEventListener('change', () => {
-        fileNameDisplay.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : '';
+    // Clear file on "X" click
+    fileLabel.addEventListener('click', (e) => {
+        // Only clear if the clear icon is visible
+        if (clearIcon.style.display === 'block') {
+            e.preventDefault(); // Stop it from opening the file dialog
+            fileInput.value = ''; // Clear the file input
+            fileNameDisplay.textContent = '';
+            uploadIcon.style.display = 'block';
+            clearIcon.style.display = 'none';
+            topicInput.placeholder = 'Type a topic...';
+            topicInput.disabled = false;
+        }
     });
+
+
+    // Original loader and validation script
+    document.getElementById('quiz-form').onsubmit = function() {
+        // Show loader
+        document.querySelector('.loader-wrapper').style.display = 'flex';
+
+        // Hide any previous error messages
+        const errorDiv = document.querySelector('.alert-danger[style*="display: block"]');
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+        const errorDivEmpty = document.querySelector('.alert-danger[style*="display: none"]');
+
+        // Basic validation
+        const topic = document.getElementById('topic').value;
+        const file = document.getElementById('file').files.length;
+        if (!topic && file === 0) {
+            // Use the empty error div to show the message
+            if(errorDivEmpty) {
+                errorDivEmpty.textContent = "Please enter a topic or upload a file.";
+                errorDivEmpty.style.display = 'block';
+            }
+            document.querySelector('.loader-wrapper').style.display = 'none';
+            return false; // Stop form submission
+        }
+        return true; // Continue submission
+    };
 </script>
 </body>
 </html>

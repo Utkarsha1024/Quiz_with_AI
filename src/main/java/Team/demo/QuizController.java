@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 public class QuizController {
@@ -31,7 +33,10 @@ public class QuizController {
     }
 
     @GetMapping("/")
-    public String home() {
+    public String home(Model model, @RequestParam(value = "error", required = false) String error) {
+        if (error != null) {
+            model.addAttribute("error", "Failed to generate quiz. The AI service may be busy or the request was invalid. Please try again.");
+        }
         return "index";
     }
 
@@ -40,6 +45,7 @@ public class QuizController {
                                @RequestParam int numberOfQuestions,
                                @RequestParam String difficulty,
                                @RequestParam String type,
+                               @RequestParam int totalTime, // Added totalTime
                                @RequestParam(required = false) MultipartFile file,
                                Model model,
                                HttpSession session,
@@ -54,18 +60,23 @@ public class QuizController {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName();
+            // Pass file to AiQuizService
             quiz = aiQuizService.generateQuiz(topic, numberOfQuestions, difficulty, type, file, username);
             if (quiz == null || quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) {
+                // Use fallback
                 quiz = createFallbackQuiz(topic, difficulty, type);
                 model.addAttribute("note", "⚠️ AI service unavailable. Showing a fallback quiz.");
             }
         } catch (Exception e) {
-            quiz = createFallbackQuiz(topic, difficulty, type);
-            model.addAttribute("note", "⚠️ An error occurred while generating the quiz. Showing a fallback quiz.");
+            // Catch exceptions from AI service (e.g., rate limit, bad response)
+            e.printStackTrace(); // Log the error
+            redirectAttributes.addFlashAttribute("error", "Failed to generate quiz. The AI service may be busy. Please try again.");
+            return "redirect:/";
         }
 
         session.setAttribute("currentQuiz", quiz);
         model.addAttribute("quiz", quiz);
+        model.addAttribute("totalTime", totalTime); // Pass totalTime to the quiz page
         return "quiz_dynamic";
     }
 
@@ -101,6 +112,7 @@ public class QuizController {
             boolean isCorrect = false;
 
             if (userAnswer != null && !userAnswer.isBlank()) {
+                // Case-insensitive check for fill in the blank, exact check for MC
                 if (("Fill in the Blank".equals(q.getType()) && userAnswer.equalsIgnoreCase(correctAnswer)) ||
                         (!"Fill in the Blank".equals(q.getType()) && userAnswer.equals(correctAnswer))) {
                     score++;
@@ -113,6 +125,8 @@ public class QuizController {
             qr.setUserAnswer(userAnswer != null && !userAnswer.isBlank() ? userAnswer : "Not Answered");
             qr.setCorrectAnswer(correctAnswer);
             qr.setCorrect(isCorrect);
+            qr.setExplanation(q.getExplanation()); // <-- Save the explanation
+            // We would also save question type and options here if implementing "Retake"
             questionResults.add(qr);
         }
 
@@ -123,7 +137,6 @@ public class QuizController {
 
         model.addAttribute("score", score);
         model.addAttribute("total", questions.size());
-        // ✅ FIX: Pass the calculated results to the page instead of the raw questions/answers
         model.addAttribute("questionResults", questionResults);
 
         session.removeAttribute("currentQuiz");
@@ -140,6 +153,39 @@ public class QuizController {
         return "history";
     }
 
+    // ✅ --- NEW PROFILE ENDPOINT --- ✅
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+
+        // Fetch all results for statistics
+        List<QuizResult> allResults = quizResultRepository.findByUser_UsernameOrderByTimestampDesc(currentUsername);
+
+        // Calculate stats
+        int totalQuizzes = allResults.size();
+        int totalScore = allResults.stream().mapToInt(QuizResult::getScore).sum();
+        int totalQuestions = allResults.stream().mapToInt(QuizResult::getTotal).sum();
+
+        double averageScore = 0.0;
+        if (totalQuestions > 0) {
+            averageScore = (100.0 * totalScore) / totalQuestions;
+        }
+
+        // Get top 5 recent quizzes for display
+        List<QuizResult> recentQuizzes = allResults.stream().limit(5).collect(Collectors.toList());
+
+        // Add stats to the model
+        model.addAttribute("totalQuizzes", totalQuizzes);
+        model.addAttribute("totalQuestions", totalQuestions);
+        model.addAttribute("averageScore", averageScore);
+        model.addAttribute("recentQuizzes", recentQuizzes);
+
+        return "profile";
+    }
+    // ==================================
+
+
     private Quiz createFallbackQuiz(String topic, String difficulty, String type) {
         List<Question> fallbackQuestions = new ArrayList<>();
         if ("Fill in the Blank".equals(type)) {
@@ -147,6 +193,7 @@ public class QuizController {
             q.setType("Fill in the Blank");
             q.setQuestion("The capital of France is ____.");
             q.setAnswer("Paris");
+            q.setExplanation("Paris is the capital and most populous city of France.");
             fallbackQuestions.add(q);
         } else {
             Question q = new Question();
@@ -154,6 +201,7 @@ public class QuizController {
             q.setQuestion("What does AI stand for?");
             q.setOptions(Arrays.asList("Artificial Intelligence", "Automated Input", "None"));
             q.setCorrectOptionIndex(0);
+            q.setExplanation("'AI' is the acronym for 'Artificial Intelligence'.");
             fallbackQuestions.add(q);
         }
         return new Quiz(topic, difficulty, type, fallbackQuestions);

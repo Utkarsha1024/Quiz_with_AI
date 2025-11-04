@@ -11,6 +11,7 @@ public class Question implements Serializable {
     private List<String> options;
     private int correctOptionIndex = -1;
     private String answer;
+    private String explanation; // <-- ADDED THIS FIELD
 
     public Question() {}
 
@@ -25,6 +26,10 @@ public class Question implements Serializable {
     public void setCorrectOptionIndex(int correctOptionIndex) { this.correctOptionIndex = correctOptionIndex; }
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
+
+    // Getter and Setter for the new field
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
 
     public String getCorrectAnswerText() {
         if ("Fill in the Blank".equals(this.type)) {

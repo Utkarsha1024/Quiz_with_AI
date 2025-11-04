@@ -15,6 +15,9 @@ public class QuestionResult {
     private String correctAnswer;
     private boolean correct;
 
+    @Column(length = 2000) // Allow for a longer explanation
+    private String explanation; // <-- ADDED THIS FIELD
+
     public QuestionResult() {}
 
     // Getters and Setters
@@ -28,4 +31,9 @@ public class QuestionResult {
     public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
     public boolean isCorrect() { return correct; }
     public void setCorrect(boolean correct) { this.correct = correct; }
+
+    // Getter and Setter for the new field
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
 }
+

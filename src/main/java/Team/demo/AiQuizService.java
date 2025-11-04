@@ -5,22 +5,22 @@ import Team.demo.model.Quiz;
 import Team.demo.model.QuizResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.pdfbox.Loader; // <-- ADD THIS IMPORT
+import org.apache.pdfbox.Loader; // <-- Import Loader
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.XWPFDocument; // <-- ADD THIS IMPORT
+import org.apache.poi.xwpf.usermodel.XWPFDocument; // <-- Import XWPFDocument
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile; // Restored import
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream; // Restored import
-import java.nio.charset.StandardCharsets; // Restored import
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,20 +43,28 @@ public class AiQuizService {
         this.quizResultRepository = quizResultRepository;
     }
 
-    // Restored original method signature
     public Quiz generateQuiz(String topic, int numberOfQuestions, String difficulty, String type, MultipartFile file, String username) throws IOException {
-        // Restored original context logic
         String context;
         if (file != null && !file.isEmpty()) {
-            context = "Based on the provided document: " + extractTextFromFile(file);
+            String fileText = extractTextFromFile(file);
+            // Escape newlines and quotes for the JSON prompt
+            String escapedFileText = fileText.replace("\"", "\\\"").replace("\n", "\\n");
+            context = "Based on the following document text: \n\"" + escapedFileText + "\"\n\n";
+            // If no topic is provided, try to infer it from the file name
+            if (topic == null || topic.isBlank()) {
+                topic = file.getOriginalFilename();
+            }
         } else {
             context = "on the topic of '" + topic + "'";
         }
 
+        // ✅ FIX for lambda error: Create a final variable for use in the lambda
+        final String effectiveTopic = topic;
         String exclusionPrompt = "";
-        if (topic != null && !topic.isBlank() && username != null) {
+        if (effectiveTopic != null && !effectiveTopic.isBlank() && username != null) {
             List<String> pastQuestions = quizResultRepository.findByUser_UsernameOrderByTimestampDesc(username).stream()
-                    .filter(result -> topic.equalsIgnoreCase(result.getTopic()))
+                    // Use the 'effectiveTopic' variable here
+                    .filter(result -> effectiveTopic.equalsIgnoreCase(result.getTopic()))
                     .flatMap(result -> result.getQuestionResults().stream().map(qr -> qr.getQuestionText()))
                     .distinct().collect(Collectors.toList());
             if (!pastQuestions.isEmpty()) {
@@ -64,14 +72,14 @@ public class AiQuizService {
             }
         }
 
-        // ✅ REFINED: Create completely separate, more forceful prompts for each type.
+        // ✅ REFINED: Update prompts to ask for an "explanation"
         String prompt;
         if ("Fill in the Blank".equals(type)) {
             prompt = String.format(
                     "Generate a quiz with exactly %d 'Fill in the Blank' questions. The quiz is %s. Difficulty: '%s'. " +
                             "IMPORTANT: You must only output a JSON object. Do not add any other text or markdown. " +
                             "Follow this exact JSON structure: " +
-                            "{\"questions\":[{\"question\":\"A question with a ____ in it.\",\"answer\":\"The missing word\"}]}. " +
+                            "{\"questions\":[{\"question\":\"A question with a ____ in it.\",\"answer\":\"The missing word\", \"explanation\":\"Why this is the correct answer.\"}]}. " +
                             "The 'question' field MUST contain '____' as the blank. %s",
                     numberOfQuestions, context, difficulty, exclusionPrompt
             );
@@ -79,25 +87,23 @@ public class AiQuizService {
             prompt = String.format(
                     "Generate a quiz with exactly %d 'Multiple Choice' questions. The quiz is %s. Difficulty: '%s'. " +
                             "Output ONLY a strict JSON object (no markdown). " +
-                            "The JSON structure MUST be: {\"questions\":[{\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correctOptionIndex\":0}]}. " +
+                            "The JSON structure MUST be: {\"questions\":[{\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correctOptionIndex\":0, \"explanation\":\"A brief reason why this option is correct.\"}]}. " +
                             "The 'correctOptionIndex' MUST be the 0-based index of the correct answer. %s",
                     numberOfQuestions, context, difficulty, exclusionPrompt
             );
         }
 
-        return generateQuizFromPrompt(prompt, topic, difficulty, type);
+        return generateQuizFromPrompt(prompt, effectiveTopic, difficulty, type); // Pass effectiveTopic here too
     }
 
-    // Restored the extractTextFromFile method
     private String extractTextFromFile(MultipartFile file) throws IOException {
         String fileName = file.getOriginalFilename();
         try (InputStream inputStream = file.getInputStream()) {
             String text = "";
             if (fileName != null) {
                 if (fileName.toLowerCase().endsWith(".pdf")) {
-                    // Read bytes from the input stream
+                    // Use Loader.loadPDF with a byte array
                     byte[] bytes = inputStream.readAllBytes();
-                    // Now load the PDF from the byte array
                     PDDocument document = Loader.loadPDF(bytes);
                     text = new PDFTextStripper().getText(document);
                     document.close();
@@ -109,7 +115,7 @@ public class AiQuizService {
                     throw new IOException("Unsupported file type: " + fileName);
                 }
             }
-            int maxLength = 25000; // Limit context size
+            int maxLength = 25000;
             return text.length() > maxLength ? text.substring(0, maxLength) : text;
         }
     }
@@ -118,7 +124,9 @@ public class AiQuizService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            String requestBody = "{ \"contents\": [{ \"parts\": [{ \"text\": \"" + prompt.replace("\"", "\\\"").replace("\n", "\\n") + "\" }] }] }";
+            // We must escape quotes and newlines in the *final* prompt string for the JSON payload
+            String escapedPrompt = prompt.replace("\"", "\\\"").replace("\n", "\\n");
+            String requestBody = "{ \"contents\": [{ \"parts\": [{ \"text\": \"" + escapedPrompt + "\" }] }] }";
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
             String fullApiUrl = geminiApiUrl + "?key=" + geminiApiKey;
 
@@ -127,17 +135,11 @@ public class AiQuizService {
                 JsonNode root = objectMapper.readTree(response.getBody());
 
                 if (!root.has("candidates") || !root.get("candidates").isArray() || root.get("candidates").isEmpty()) {
-                    // Check for a promptFeedback block which might indicate a safety block
-                    if (root.has("promptFeedback") && root.path("promptFeedback").has("blockReason")) {
-                        String reason = root.path("promptFeedback").path("blockReason").asText();
-                        logger.warn("AI prompt was blocked. Reason: {}", reason);
-                        throw new RuntimeException("The request was blocked by the AI for safety reasons: " + reason);
-                    }
                     throw new RuntimeException("AI response was empty or invalid.");
                 }
 
                 String rawText = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
-// ... existing code ... // Log the raw response for debugging
+                logger.info("AI RAW RESPONSE: {}", rawText); // Log the raw response for debugging
                 String cleanedJsonText = rawText.replace("```json", "").replace("```", "").trim();
 
                 if (!cleanedJsonText.startsWith("{") || !cleanedJsonText.endsWith("}")) {
@@ -159,6 +161,9 @@ public class AiQuizService {
                     Question question = new Question();
                     question.setType(type);
                     question.setQuestion(qNode.path("question").asText());
+                    // ✅ ADDED: Parse and set the explanation
+                    question.setExplanation(qNode.path("explanation").asText(null));
+
 
                     if ("Fill in the Blank".equals(type)) {
                         if (!qNode.hasNonNull("answer")) {
@@ -193,3 +198,4 @@ public class AiQuizService {
         }
     }
 }
+
